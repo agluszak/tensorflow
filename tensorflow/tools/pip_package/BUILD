@@ -218,7 +218,7 @@ filegroup(
         "@sobol_data//:LICENSE",
         "@tblib_archive//:LICENSE",
         "@termcolor_archive//:COPYING.txt",
-        "@zlib//:zlib.h",
+#        "@zlib//:zlib.h",
         "@clog//:LICENSE",
         "@cpuinfo//:LICENSE",
     ] + select({

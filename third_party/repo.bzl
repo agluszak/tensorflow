@@ -14,6 +14,9 @@
 
 """Utilities for defining TensorFlow Bazel dependencies."""
 
+
+load("//third_party:system_library.bzl", "system_library_impl")
+
 _SINGLE_URL_WHITELIST = depset([
     "arm_compiler",
 ])
@@ -106,12 +109,15 @@ def _tf_http_archive(ctx):
         if ctx.attr.patch_file != None:
             _apply_patch(ctx, ctx.attr.patch_file)
 
-    if use_syslib and ctx.attr.system_build_file != None:
-        # Use BUILD.bazel to avoid conflict with third party projects with
-        # BUILD or build (directory) underneath.
-        ctx.template("BUILD.bazel", ctx.attr.system_build_file, {
-            "%prefix%": ".." if _repos_are_siblings() else "external",
-        }, False)
+    if use_syslib:
+        if ctx.attr.system_build_file != None:
+            # Use BUILD.bazel to avoid conflict with third party projects with
+            # BUILD or build (directory) underneath.
+            ctx.template("BUILD.bazel", ctx.attr.system_build_file, {
+                "%prefix%": ".." if _repos_are_siblings() else "external",
+            }, False)
+        elif ctx.attr.lib_name != None:
+            system_library_impl(ctx)
 
     elif ctx.attr.build_file != None:
         # Use BUILD.bazel to avoid conflict with third party projects with
@@ -143,6 +149,13 @@ tf_http_archive = repository_rule(
         "system_build_file": attr.label(),
         "system_link_files": attr.string_dict(),
         "additional_build_files": attr.string_dict(),
+        "lib_name": attr.string(),
+        "lib_archive_names": attr.string_list(),
+        "lib_path_hints": attr.string_list(),
+        "includes": attr.string_list(),
+        "hdrs": attr.string_list(),
+        "deps": attr.string_list(),
+        "linkstatic": attr.bool(),
     },
     environ = [
         "TF_SYSTEM_LIBS",
