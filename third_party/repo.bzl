@@ -14,7 +14,6 @@
 
 """Utilities for defining TensorFlow Bazel dependencies."""
 
-
 load("//third_party:system_library.bzl", "system_library_impl")
 
 _SINGLE_URL_WHITELIST = depset([
@@ -109,15 +108,12 @@ def _tf_http_archive(ctx):
         if ctx.attr.patch_file != None:
             _apply_patch(ctx, ctx.attr.patch_file)
 
-    if use_syslib:
-        if ctx.attr.system_build_file != None:
-            # Use BUILD.bazel to avoid conflict with third party projects with
-            # BUILD or build (directory) underneath.
-            ctx.template("BUILD.bazel", ctx.attr.system_build_file, {
-                "%prefix%": ".." if _repos_are_siblings() else "external",
-            }, False)
-        elif ctx.attr.lib_name != None:
-            system_library_impl(ctx)
+    if use_syslib and ctx.attr.system_build_file != None:
+        # Use BUILD.bazel to avoid conflict with third party projects with
+        # BUILD or build (directory) underneath.
+        ctx.template("BUILD.bazel", ctx.attr.system_build_file, {
+            "%prefix%": ".." if _repos_are_siblings() else "external",
+        }, False)
 
     elif ctx.attr.build_file != None:
         # Use BUILD.bazel to avoid conflict with third party projects with
@@ -149,6 +145,82 @@ tf_http_archive = repository_rule(
         "system_build_file": attr.label(),
         "system_link_files": attr.string_dict(),
         "additional_build_files": attr.string_dict(),
+    },
+    environ = [
+        "TF_SYSTEM_LIBS",
+    ],
+    implementation = _tf_http_archive,
+)
+
+def _tf_system_library_http_fallback(ctx):
+    if ("mirror.tensorflow.org" not in ctx.attr.urls[0] and
+        (len(ctx.attr.urls) < 2 and
+         ctx.attr.name not in _SINGLE_URL_WHITELIST.to_list())):
+        fail("tf_http_archive(urls) must have redundant URLs. The " +
+             "mirror.tensorflow.org URL must be present and it must come first. " +
+             "Even if you don't have permission to mirror the file, please " +
+             "put the correctly formatted mirror URL there anyway, because " +
+             "someone will come along shortly thereafter and mirror the file.")
+
+    use_syslib = _use_system_lib(ctx, ctx.attr.name)
+
+    # Work around the bazel bug that redownloads the whole library.
+    # Remove this after https://github.com/bazelbuild/bazel/issues/10515 is fixed.
+    if ctx.attr.additional_build_files:
+        for internal_src in ctx.attr.additional_build_files:
+            _ = ctx.path(Label(internal_src))
+
+    # End of workaround.
+
+    if not use_syslib:
+        ctx.download_and_extract(
+            ctx.attr.urls,
+            "",
+            ctx.attr.sha256,
+            ctx.attr.type,
+            ctx.attr.strip_prefix,
+        )
+        if ctx.attr.delete:
+            _apply_delete(ctx, ctx.attr.delete)
+        if ctx.attr.patch_file != None:
+            _apply_patch(ctx, ctx.attr.patch_file)
+
+    if use_syslib:
+        if ctx.attr.lib_name != None:
+            system_library_impl(ctx)
+        else:
+            #            TODO: better error message
+            fail(ctx.attr.name)
+
+    elif ctx.attr.build_file != None:
+        # Use BUILD.bazel to avoid conflict with third party projects with
+        # BUILD or build (directory) underneath.
+        ctx.template("BUILD.bazel", ctx.attr.build_file, {
+            "%prefix%": ".." if _repos_are_siblings() else "external",
+        }, False)
+
+    if use_syslib:
+        for internal_src, external_dest in ctx.attr.system_link_files.items():
+            ctx.symlink(Label(internal_src), ctx.path(external_dest))
+
+    if ctx.attr.additional_build_files:
+        for internal_src, external_dest in ctx.attr.additional_build_files.items():
+            ctx.symlink(Label(internal_src), ctx.path(external_dest))
+
+tf_system_library_http_fallback = repository_rule(
+    attrs = {
+        "sha256": attr.string(mandatory = True),
+        "urls": attr.string_list(
+            mandatory = True,
+            allow_empty = False,
+        ),
+        "strip_prefix": attr.string(),
+        "type": attr.string(),
+        "delete": attr.string_list(),
+        "patch_file": attr.label(),
+        "build_file": attr.label(),
+        "system_link_files": attr.string_dict(),
+        "additional_build_files": attr.string_dict(),
         "lib_name": attr.string(),
         "lib_archive_names": attr.string_list(),
         "lib_path_hints": attr.string_list(),
@@ -156,11 +228,13 @@ tf_http_archive = repository_rule(
         "hdrs": attr.string_list(),
         "deps": attr.string_list(),
         "linkstatic": attr.bool(),
+        "optional_hdrs": attr.string_list(),
     },
+    remotable = True,
     environ = [
         "TF_SYSTEM_LIBS",
     ],
-    implementation = _tf_http_archive,
+    implementation = _tf_system_library_http_fallback,
 )
 
 """Downloads and creates Bazel repos for dependencies.

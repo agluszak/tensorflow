@@ -13,7 +13,7 @@ load("//third_party/toolchains/remote:configure.bzl", "remote_execution_configur
 load("//third_party/toolchains/clang6:repo.bzl", "clang6_configure")
 load("//third_party/toolchains/cpus/arm:arm_compiler_configure.bzl", "arm_compiler_configure")
 load("//third_party/toolchains/embedded/arm-linux:arm_linux_toolchain_configure.bzl", "arm_linux_toolchain_configure")
-load("//third_party:repo.bzl", "tf_http_archive")
+load("//third_party:repo.bzl", "tf_http_archive", "tf_system_library_http_fallback")
 load("//third_party/clang_toolchain:cc_configure_clang.bzl", "cc_download_clang_toolchain")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
 load("@bazel_tools//tools/build_defs/repo:java.bzl", "java_import_external")
@@ -764,19 +764,21 @@ def tf_repositories(path_prefix = "", tf_repo_name = ""):
         ],
     )
 
-    tf_http_archive(
+    tf_system_library_http_fallback(
         name = "zlib",
         build_file = clean_dep("//third_party:zlib.BUILD"),
         sha256 = "c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1",
         strip_prefix = "zlib-1.2.11",
-#        system_build_file = clean_dep("//third_party/systemlibs:zlib.BUILD"),
         urls = [
             "https://storage.googleapis.com/mirror.tensorflow.org/zlib.net/zlib-1.2.11.tar.gz",
             "https://zlib.net/zlib-1.2.11.tar.gz",
         ],
+        exec_properties = {
+            "container-image": "docker://gcr.io/bazel-public/ubuntu1604-bazel-java8@sha256:028489c090b9225290499a8015ba0179bb3e5ba6b0d0aa5b192237fe0dd8de55",
+        },
         lib_name = "zlib",
         lib_archive_names = ["z"],
-        hdrs = ["zconf.h", "zlib.h"]
+        hdrs = ["zconf.h", "zlib.h"],
     )
 
     tf_http_archive(

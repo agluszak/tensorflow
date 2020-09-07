@@ -49,7 +49,7 @@ def _find_lib_path(repo_ctx, lib_name, archive_name, lib_path_hints):
     path_flags = _make_flags(override_paths + lib_path_hints, "-L")
     linker = _find_linker(repo_ctx)
     cmd = """
-          {} -verbose -l:{} {} | \\
+          {} -verbose -l:{} {} 2>/dev/null | \\
           grep succeeded | \\
           sed -e 's/^\s*attempt to open //' -e 's/ succeeded\s*$//'
           """.format(
@@ -104,10 +104,13 @@ def _get_archive_name(lib_name, static):
         return "lib" + lib_name + ".so"
 
 def system_library_impl(repo_ctx):
+    repo_ctx.execute(["/bin/bash", "-c", "echo test"])
+
     repo_name = repo_ctx.attr.name
     lib_name = repo_ctx.attr.lib_name
     includes = repo_ctx.attr.includes
     hdrs = repo_ctx.attr.hdrs
+    optional_hdrs = repo_ctx.attr.optional_hdrs
     deps = repo_ctx.attr.deps
     lib_path_hints = repo_ctx.attr.lib_path_hints
     linkstatic = repo_ctx.attr.linkstatic
@@ -127,7 +130,6 @@ def system_library_impl(repo_ctx):
     static_library_param = "static_library = \"{}\",".format(archive_fullname) if linkstatic else ""
     shared_library_param = "shared_library = \"{}\",".format(archive_fullname) if not linkstatic else ""
     repo_ctx.symlink(archive_found_path, archive_fullname)
-
     hdr_names = []
     hdr_paths = []
     for hdr in hdrs:
@@ -137,7 +139,14 @@ def system_library_impl(repo_ctx):
             hdr_names.append(hdr)
             hdr_paths.append(hdr_path)
         else:
-            print("Could not find header {}".format(hdr))
+            fail("Could not find required header {}".format(hdr))
+
+    for hdr in optional_hdrs:
+        hdr_path = _find_header_path(repo_ctx, lib_name, hdr, includes)
+        if hdr_path:
+            repo_ctx.symlink(hdr_path, hdr)
+            hdr_names.append(hdr)
+            hdr_paths.append(hdr_path)
 
     hdrs_param = "hdrs = {},".format(str(hdr_names))
 
@@ -145,22 +154,17 @@ def system_library_impl(repo_ctx):
     # #include <SDL2/SDL.h> -> #include "SDL_main.h" -> #include <SDL2/_real_SDL_config.h> -> #include "SDL_platform.h"
     # The problem is that the quote-includes are assumed to be
     # in the same directory as the header they are included from - they have no subdir prefix ("SDL2/") in their paths
-    include_subdirs = dict()
+    include_subdirs = {}
     for hdr in hdr_names:
         path_segments = hdr.split("/")
         path_segments.pop()
-        current_path_segments = ["external", repo_name]
+        current_path_segments = ["external", repo_name, "remote"]
         for segment in path_segments:
             current_path_segments.append(segment)
             current_path = "/".join(current_path_segments)
             include_subdirs.update({current_path: None})
-
-        # WTF?
-        current_path_segments = ["bazel-out/k8-fastbuild/bin/external", repo_name]
-        for segment in path_segments:
-            current_path_segments.append(segment)
-            current_path = "/".join(current_path_segments)
-            include_subdirs.update({current_path: None})
+        include_subdirs.update({"bazel-out/k8-opt-exec-DEE97DD4/bin/external/" + repo_name + "/remote": None})
+        include_subdirs.update({"bazel-out/k8-opt/bin/external/" + repo_name + "/remote": None})
 
     includes_param = "includes = {},".format(str(include_subdirs.keys()))
 
@@ -171,10 +175,14 @@ def system_library_impl(repo_ctx):
     deps_param = "deps = [{}],".format(",".join(deps_names))
 
     link_hdrs_command = ""
+    remote_hdrs = []
     for path, hdr in zip(hdr_paths, hdr_names):
-        link_hdrs_command += "echo {path} && ln -sf {path} $(RULEDIR)/{hdr}\n".format(path = path, hdr = hdr)
+        remote_hdr = "remote/" + hdr
+        remote_hdrs.append(remote_hdr)
+        link_hdrs_command += "mkdir -p $(RULEDIR)/remote && cp {path} $(RULEDIR)/{hdr}\n".format(path = path, hdr = remote_hdr)
 
-    link_library_command = "ln -sf {} $(RULEDIR)/{}".format(archive_found_path, archive_fullname)
+    remote_archive_fullname = "remote/" + archive_fullname
+    link_library_command = "mkdir -p $(RULEDIR)/remote && cp {path} $(RULEDIR)/{lib}".format(path = archive_found_path, lib = remote_archive_fullname)
 
     remote_library_param = "static_library = \"remote_link_archive\"," if linkstatic else "shared_library = \"remote_link_archive\","
 
@@ -195,19 +203,13 @@ cc_import(
 
 genrule(
     name = "remote_link_headers",
-    outs = {hdr_names},
+    outs = {remote_hdrs},
     cmd = {link_hdrs_command}
 )
 
 genrule(
-    name = "hello",
-    outs = [],
-    cmd = "echo hello"
-)
-
-genrule(
     name = "remote_link_archive",
-    outs = ["{archive_fullname}"],
+    outs = ["{remote_archive_fullname}"],
     cmd = {link_library_command}
 )
 
@@ -222,7 +224,7 @@ cc_import(
 alias(
     name = "{name}",
     actual = select({{
-        # "@bazel_tools//src/conditions:remote": "remote_includes",
+        "@bazel_tools//src/conditions:remote": "remote_includes",
         "//conditions:default": "local_includes",
     }}),
     visibility = ["//visibility:public"],
@@ -239,6 +241,8 @@ alias(
                 remote_library_param = remote_library_param,
                 name = lib_name,
                 includes = includes_param,
+                remote_hdrs = remote_hdrs,
+                remote_archive_fullname = remote_archive_fullname,
             ),
     )
 
@@ -252,7 +256,8 @@ system_library = repository_rule(
         "lib_archive_names": attr.string_list(),
         "lib_path_hints": attr.string_list(),
         "includes": attr.string_list(),
-        "hdrs": attr.string_list(),
+        "hdrs": attr.string_list(mandatory = True, allow_empty = False),
+        "optional_hdrs": attr.string_list(),
         "deps": attr.string_list(),
         "linkstatic": attr.bool(),
     },
