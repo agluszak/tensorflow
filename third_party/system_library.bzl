@@ -104,8 +104,6 @@ def _get_archive_name(lib_name, static):
         return "lib" + lib_name + ".so"
 
 def system_library_impl(repo_ctx):
-    repo_ctx.execute(["/bin/bash", "-c", "echo test"])
-
     repo_name = repo_ctx.attr.name
     lib_name = repo_ctx.attr.lib_name
     includes = repo_ctx.attr.includes
@@ -120,7 +118,7 @@ def system_library_impl(repo_ctx):
     archive_fullname = ""
     for name in lib_archive_names:
         archive_fullname = _get_archive_name(name, linkstatic)
-        archive_found_path = _find_lib_path(repo_ctx, lib_name, archive_fullname, lib_path_hints)
+        archive_found_path = _find_lib_path(repo_ctx, lib_name, name, lib_path_hints)
         if archive_found_path:
             break
 
@@ -163,6 +161,7 @@ def system_library_impl(repo_ctx):
             current_path_segments.append(segment)
             current_path = "/".join(current_path_segments)
             include_subdirs.update({current_path: None})
+        include_subdirs.update({"bazel-out/k8-opt-exec-8EC663B4/bin/external/" + repo_name + "/remote": None})
         include_subdirs.update({"bazel-out/k8-opt-exec-DEE97DD4/bin/external/" + repo_name + "/remote": None})
         include_subdirs.update({"bazel-out/k8-opt/bin/external/" + repo_name + "/remote": None})
 

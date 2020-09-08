@@ -393,17 +393,22 @@ def tf_repositories(path_prefix = "", tf_repo_name = ""):
         ],
     )
 
-    tf_http_archive(
+    tf_system_library_http_fallback(
         name = "png",
         build_file = clean_dep("//third_party:png.BUILD"),
         patch_file = clean_dep("//third_party:png_fix_rpi.patch"),
         sha256 = "ca74a0dace179a8422187671aee97dd3892b53e168627145271cad5b5ac81307",
         strip_prefix = "libpng-1.6.37",
-        system_build_file = clean_dep("//third_party/systemlibs:png.BUILD"),
         urls = [
             "https://storage.googleapis.com/mirror.tensorflow.org/github.com/glennrp/libpng/archive/v1.6.37.tar.gz",
             "https://github.com/glennrp/libpng/archive/v1.6.37.tar.gz",
         ],
+        exec_properties = {
+            "container-image": "docker://gcr.io/tensorflow-testing/nosla-ubuntu16.04-manylinux2010@sha256:5d855d2e9905c3824d71129fbf29696eb18d2237c5d152ab8d23f6882b83f115",
+        },
+        lib_name = "png",
+        lib_archive_names = ["libpng.so", "libpng12.so.0"],
+        hdrs = ["png.h"],
     )
 
     tf_http_archive(
@@ -424,11 +429,11 @@ def tf_repositories(path_prefix = "", tf_repo_name = ""):
         patch_file = clean_dep("//third_party:gif_fix_strtok_r.patch"),
         sha256 = "31da5562f44c5f15d63340a09a4fd62b48c45620cd302f77a6d9acf0077879bd",
         strip_prefix = "giflib-5.2.1",
-        system_build_file = clean_dep("//third_party/systemlibs:gif.BUILD"),
         urls = [
             "https://storage.googleapis.com/mirror.tensorflow.org/pilotfiber.dl.sourceforge.net/project/giflib/giflib-5.2.1.tar.gz",
             "https://pilotfiber.dl.sourceforge.net/project/giflib/giflib-5.2.1.tar.gz",
         ],
+        system_build_file = clean_dep("//third_party/systemlibs:gif.BUILD"),
     )
 
     tf_http_archive(
@@ -774,10 +779,10 @@ def tf_repositories(path_prefix = "", tf_repo_name = ""):
             "https://zlib.net/zlib-1.2.11.tar.gz",
         ],
         exec_properties = {
-            "container-image": "docker://gcr.io/bazel-public/ubuntu1604-bazel-java8@sha256:028489c090b9225290499a8015ba0179bb3e5ba6b0d0aa5b192237fe0dd8de55",
+            "container-image": "docker://gcr.io/tensorflow-testing/nosla-ubuntu16.04-manylinux2010@sha256:5d855d2e9905c3824d71129fbf29696eb18d2237c5d152ab8d23f6882b83f115",
         },
         lib_name = "zlib",
-        lib_archive_names = ["z"],
+        lib_archive_names = ["libz.so"],
         hdrs = ["zconf.h", "zlib.h"],
     )
 
