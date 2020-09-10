@@ -73,3 +73,16 @@ platform(
         "Pool": "default",
     },
 )
+
+# Built with //tensorflow/tools/ci_build/Dockerfile.rbe.ubuntu16.04-manylinux2010-systemlibraries.
+platform(
+    name = "rbe_ubuntu16.04-manylinux2010-systemlibraries",
+    constraint_values = [
+        "@bazel_tools//platforms:x86_64",
+        "@bazel_tools//platforms:linux",
+    ],
+    exec_properties = {
+        "container-image": "docker://gcr.io/tensorflow-system-libraries/nosla-ubuntu16.04-manylinux2010-systemlibraries@%s" % container_digests["ubuntu16.04-manylinux2010-systemlibraries"],
+        "Pool": "default",
+    },
+)

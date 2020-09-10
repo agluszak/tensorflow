@@ -117,7 +117,7 @@ def system_library_impl(repo_ctx):
     archive_found_path = ""
     archive_fullname = ""
     for name in lib_archive_names:
-        archive_fullname = _get_archive_name(name, linkstatic)
+        archive_fullname = name  #_get_archive_name(name, linkstatic)
         archive_found_path = _find_lib_path(repo_ctx, lib_name, name, lib_path_hints)
         if archive_found_path:
             break
@@ -161,6 +161,7 @@ def system_library_impl(repo_ctx):
             current_path_segments.append(segment)
             current_path = "/".join(current_path_segments)
             include_subdirs.update({current_path: None})
+        include_subdirs.update({"bazel-out/k8-opt-exec-4509B51/bin/external/" + repo_name + "/remote": None})
         include_subdirs.update({"bazel-out/k8-opt-exec-8EC663B4/bin/external/" + repo_name + "/remote": None})
         include_subdirs.update({"bazel-out/k8-opt-exec-DEE97DD4/bin/external/" + repo_name + "/remote": None})
         include_subdirs.update({"bazel-out/k8-opt/bin/external/" + repo_name + "/remote": None})

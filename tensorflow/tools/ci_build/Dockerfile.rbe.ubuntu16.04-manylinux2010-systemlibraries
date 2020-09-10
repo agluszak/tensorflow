@@ -1,0 +1,19 @@
+FROM gcr.io/tensorflow-testing/nosla-ubuntu16.04-manylinux2010@sha256:5d855d2e9905c3824d71129fbf29696eb18d2237c5d152ab8d23f6882b83f115
+
+RUN \
+    apt-get update && \
+    apt-get -y install \
+	libcurl4-openssl-dev \
+	libdouble-conversion-dev \
+	libgif-dev \
+	libgrpc++-dev \
+	libgrpc-dev \
+	libjsoncpp-dev \
+	liblmdb-dev \
+	libpcre++-dev \
+	libpng-dev \
+	libre2-dev \
+	libsqlite3-dev \
+	libssl-dev \
+        libz-dev
+

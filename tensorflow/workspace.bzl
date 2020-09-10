@@ -404,7 +404,7 @@ def tf_repositories(path_prefix = "", tf_repo_name = ""):
             "https://github.com/glennrp/libpng/archive/v1.6.37.tar.gz",
         ],
         exec_properties = {
-            "container-image": "docker://gcr.io/tensorflow-testing/nosla-ubuntu16.04-manylinux2010@sha256:5d855d2e9905c3824d71129fbf29696eb18d2237c5d152ab8d23f6882b83f115",
+            "container-image": "docker://gcr.io/tensorflow-system-libraries/nosla-ubuntu16.04-manylinux2010-systemlibraries@sha256:3601a92c182073bd8563f76d7533855d42722b7598091706b597542ebca02fa3",
         },
         lib_name = "png",
         lib_archive_names = ["libpng.so", "libpng12.so.0"],
@@ -779,7 +779,7 @@ def tf_repositories(path_prefix = "", tf_repo_name = ""):
             "https://zlib.net/zlib-1.2.11.tar.gz",
         ],
         exec_properties = {
-            "container-image": "docker://gcr.io/tensorflow-testing/nosla-ubuntu16.04-manylinux2010@sha256:5d855d2e9905c3824d71129fbf29696eb18d2237c5d152ab8d23f6882b83f115",
+            "container-image": "docker://gcr.io/tensorflow-system-libraries/nosla-ubuntu16.04-manylinux2010-systemlibraries@sha256:3601a92c182073bd8563f76d7533855d42722b7598091706b597542ebca02fa3",
         },
         lib_name = "zlib",
         lib_archive_names = ["libz.so"],

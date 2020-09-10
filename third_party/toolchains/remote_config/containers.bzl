@@ -10,6 +10,13 @@ containers = {
         "digest": container_digests["ubuntu16.04-manylinux2010"],
     },
 
+    # Built with //tensorflow/tools/ci_build/Dockerfile.rbe.ubuntu16.04-manylinux2010-systemlibraries.
+    "ubuntu16.04-manylinux2010-systemlibraries": {
+        "registry": "gcr.io",
+        "repository": "tensorflow-system-libraries/nosla-ubuntu16.04-manylinux2010-systemlibraries",
+        "digest": container_digests["ubuntu16.04-manylinux2010-systemlibraries"],
+    },
+
     # Built with //tensorflow/tools/ci_build/Dockerfile.rbe.cuda10.0-cudnn7-ubuntu16.04-manylinux2010.
     "cuda10.0-cudnn7-ubuntu16.04-manylinux2010": {
         "registry": "gcr.io",
